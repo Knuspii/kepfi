@@ -158,15 +158,22 @@ func main() {
 
 	if len(args) > 0 {
 		for _, path := range args {
-			if path == "." || path == "/" || path == "*" {
+			absPath, _ := filepath.Abs(path)
+
+			// Block Root, Home, and Current/Parent directory
+			if absPath == "/" || absPath == home || path == "." || path == ".." {
 				fmt.Printf("%sError: Path '%s' is too dangerous to move%s\n", RED, path, RC)
 				continue
 			}
+
+			// Optional: Block critical system folders
+			if strings.HasPrefix(absPath, "/etc") || strings.HasPrefix(absPath, "/boot") {
+				fmt.Printf("%sError: System path '%s' is write-protected%s\n", RED, path, RC)
+				continue
+			}
+
 			moveToTrash(path, *temp)
 		}
-	} else {
-		fmt.Printf("Usage: kepfi <filename>\n")
-		fmt.Printf("Use 'kepfi -h' for help\n")
 	}
 }
 
@@ -213,7 +220,7 @@ func listRecords() {
 
 	fmt.Printf("%s%s%s\n", GRAY, strings.Repeat("-", termWidth), RC)
 	totalSize, _ := getDirSize(trashDir)
-	fmt.Printf("Total trash size: %s%s%s\n", YELLOW, formatSize(totalSize), RC)
+	fmt.Printf("Total kepfi trash size: %s%s%s\n", YELLOW, formatSize(totalSize), RC)
 }
 
 func restoreFile(name string) {
