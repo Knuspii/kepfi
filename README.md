@@ -16,9 +16,9 @@
 ## 🚀 Features & Usage
 | Flag | Action | Description |
 | :--- | :--- | :--- |
-| `-at <HH:MM>` | **Schedule Purge** | Launches a background process (PID shown) to clear `kephi trash` at a specific time. |
-| `-r <name>` | **Restore** | Instantly moves a file or folder back to its original location. |
-| `-l` | **List Trash** | Shows a detailed table of `kepfi trashed` items, including types and total disk usage. |
+| `-at <HH:MM>` | **Schedule Purge** | Launches a background process to clear `kephi trash` at a specific time. |
+| `-r <name>` | **Restore** | Moves a file or folder back to its original location. |
+| `-l` | **List Trash** | Shows a detailed table of `kepfi trashed` items. |
 | `-t` | **Temp Move** | Moves files to `/tmp/` instead of the `kepfi trash`. |
 | `-rm` | **Purge All** | Permanently deletes everything in the `kepfi trash` directory. |
 | `-lr <name>`| **Remove Item** | Permanently deletes one specific item from the `kephi trash`. |
