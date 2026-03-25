@@ -35,8 +35,8 @@ var (
 	restore     = flag.String("r", "", "Restore a file/folder by name")
 	temp        = flag.Bool("t", false, "Move to /tmp/")
 	list        = flag.Bool("l", false, "List all files/folders in kepfi trash")
-	listRemove  = flag.String("lr", "", "Delete a specific file/folder in kepfi trash")
-	removeAll   = flag.Bool("rm", false, "Delete all files/folders from kepfi trash")
+	Removespec  = flag.String("ps", "", "Delete a specific file/folder in kepfi trash")
+	removeAll   = flag.Bool("pa", false, "Delete all files/folders from kepfi trash")
 	force       = flag.Bool("f", false, "Force action (no confirmation)")
 	schedule    = flag.String("at", "", "Schedule a one-time purge at HH:MM")
 )
@@ -164,8 +164,8 @@ func main() {
 		return
 	}
 
-	if *listRemove != "" {
-		removeSpecific(*listRemove)
+	if *Removespec != "" {
+		removeSpecific(*Removespec)
 		return
 	}
 
@@ -340,7 +340,7 @@ func schedulePurge(targetTime string) {
 	exe, _ := os.Executable() // Absolute path to the kepfi binary
 
 	// Creates a shell command that sleeps and then triggers a forced purge
-	cmdStr := fmt.Sprintf("sleep %d && %s -rm -f > /dev/null 2>&1", delay, exe)
+	cmdStr := fmt.Sprintf("sleep %d && %s -pa -f > /dev/null 2>&1", delay, exe)
 	cmd := exec.Command("sh", "-c", cmdStr)
 
 	err := cmd.Start() // Run in background
