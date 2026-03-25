@@ -14,13 +14,15 @@
 </div>
 
 ## 🚀 Features & Usage
+**Usage: `kepfi <flag>`**
 | Flag | Action | Description |
 | :--- | :--- | :--- |
+| `<name>` | **Move Trash** | Moves files/folders to the `kephi trash`. |
 | `-at <HH:MM>` | **Schedule Purge** | Launches a background process to clear `kephi trash` at a specific time. |
-| `-r <name>` | **Restore** | Moves a file or folder back to its original location. |
+| `-r <name>` | **Restore** | Moves a file/folder back to its original location. |
 | `-l` | **List Trash** | Shows a detailed table of `kepfi trashed` items. |
-| `-t` | **Temp Move** | Moves files to `/tmp/` instead of the `kepfi trash`. |
-| `-rm` | **Purge All** | Permanently deletes everything in the `kepfi trash` directory. |
-| `-lr <name>`| **Remove Item** | Permanently deletes one specific item from the `kephi trash`. |
+| `-t` | **Temp Move** | Moves files/folders to `/tmp/` instead of the `kepfi trash`. |
+| `-pa` | **Purge All** | Permanently deletes everything in the `kepfi trash` directory. |
+| `-ps <name>`| **Purge Specific** | Permanently deletes one specific file/folder from the `kephi trash`. |
 | `-f` | **Force** | Skips the "y/N" confirmation prompt for purge actions. |
 | `-v` | **Version** | Shows current version and credits. |
