@@ -15,18 +15,24 @@
 </div>
 
 ## 🚀 Features & Usage
-**Usage: `kepfi <args/flag>`**
-| Flag | Action | Description |
-| :--- | :--- | :--- |
-| `<name>` | **Move Trash** | Moves files/folders to the `kepfi trash`. |
-| `-at <HH:MM>` | **Schedule Purge** | Launches a background process to clear `kepfi trash` at a specific time. |
-| `-r <name>` | **Restore** | Moves a file/folder back to its original location. |
-| `-l` | **List Trash** | Shows a detailed table of `kepfi trashed` items. |
-| `-t` | **Temp Move** | Moves files/folders to `/tmp/` instead of the `kepfi trash`. |
-| `-pa` | **Purge All** | Permanently deletes everything in the `kepfi trash` directory. |
-| `-ps <name>`| **Purge Specific** | Permanently deletes one specific file/folder from the `kepfi trash`. |
-| `-f` | **Force** | Skips the "y/N" confirmation prompt for purge actions. |
-| `-v` | **Version** | Shows current version and credits. |
+```
+Usage: kepfi [option]
+
+Options:
+  -l           Shows a detailed table of kepfi trashed items
+  -r <file>    Restores a file/folder back to its original location
+  -t <file>    Move a file/folder to /tmp/
+  -ps <file>   Purge specific file/folder in kepfi trash
+  -pa          Purge all files/folders from kepfi trash
+  -f           Force action (no confirmation)
+  -at <HH:MM>  Schedule a one-time purge at a specific time
+  -v           Display version
+
+  Examples:
+  kepfi file.txt        Move file.txt to kepfi trash
+  kepfi -r file.txt     Restore file.txt to its original path
+  kepfi -at 22:30       Schedule a background purge for 22:30
+```
 
 ## 📥 Easy Install
 ```
@@ -34,6 +40,14 @@ curl -sSL https://raw.githubusercontent.com/knuspii/kepfi/main/install.sh | sudo
 ```
 You can also download kepfi from the [Releases](https://github.com/knuspii/kepfi/releases) \
 [![Download](https://img.shields.io/github/downloads/knuspii/kepfi/total?color=green)](https://github.com/knuspii/kepfi/releases)
+
+## Examples
+```
+  Examples:
+  kepfi file.txt        Move file.txt to kepfi trash
+  kepfi -r file.txt     Restore file.txt to its original path
+  kepfi -at 22:30       Schedule a background purge for 22:30
+```
 
 ## 📂 Directory Structure
 ```
