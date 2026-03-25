@@ -12,3 +12,15 @@
   <h1><code>kepfi</code></h1>
   A smart alternative to rm with a recovery bin and storage tracking.
 </div>
+
+## 🚀 Features & Usage
+| Flag | Action | Description |
+| :--- | :--- | :--- |
+| `-at <HH:MM>` | **Schedule Purge** | Launches a background process (PID shown) to clear `kephi trash` at a specific time. |
+| `-r <name>` | **Restore** | Instantly moves a file or folder back to its original location. |
+| `-l` | **List Trash** | Shows a detailed table of `kepfi trashed` items, including types and total disk usage. |
+| `-t` | **Temp Move** | Moves files to `/tmp/` instead of the `kepfi trash`. |
+| `-rm` | **Purge All** | Permanently deletes everything in the `kepfi trash` directory. |
+| `-lr <name>`| **Remove Item** | Permanently deletes one specific item from the `kephi trash`. |
+| `-f` | **Force** | Skips the "y/N" confirmation prompt for purge actions. |
+| `-v` | **Version** | Shows current version and credits. |
