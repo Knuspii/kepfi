@@ -8,11 +8,11 @@
   <img src="https://img.shields.io/badge/Platform-Linux-blue?logo=linux&logoColor=white" alt="Platform" />
 </p>
 
-<p align="center">
+<div align="center">
   <h1><code>kepfi</code></h1>
-  A smart alternative to rm with a recovery bin and storage tracking.
+  <p>A smart alternative to rm with a recovery bin and storage tracking.</p>
   <img src="assets/preview.png" width="200" height="200" alt="Preview">
-</p>
+</div>
 
 ## 🚀 Features & Usage
 **Usage: `kepfi <flag>`**
