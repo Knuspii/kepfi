@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,9 +11,34 @@ import (
 	"time"
 )
 
+const USAGE = `A smart alternative to rm with a recovery bin and storage tracking.
+
+Project URL: https://github.com/Knuspii/kepfi
+License: GPL-3.0
+Author: Knuspii, (M)
+
+Usage: kepfi [option]
+
+Options:
+  -l           Shows a detailed table of kepfi trashed items
+  -r <file>    Restores a file/folder back to its original location
+  -t <file>    Move a file/folder to /tmp/
+  -ps <file>   Purge specific file/folder in kepfi trash
+  -pa          Purge all files/folders from kepfi trash
+  -f           Force action (no confirmation)
+  -at <HH:MM>  Schedule a one-time purge at a specific time
+  -v           Display version
+
+  Examples:
+  kepfi file.txt        Move file.txt to kepfi trash
+  kepfi -r file.txt     Restore file.txt to its original path
+  kepfi -at 22:30       Schedule a background purge for 22:30
+
+`
+
 const (
-	VERSION  = "0.1.0"
-	cacheDir = "/tmp"
+	VERSION  = "0.1.1"
+	CACHEDIR = "/tmp"
 	RC       = "\033[0m"
 	BOLD     = "\033[1m"
 	RED      = "\033[31m"
@@ -30,15 +54,15 @@ var (
 	trashDir     = filepath.Join(baseDir, "trash")           // Directory where files are moved
 	metadataFile = filepath.Join(baseDir, "metadata.json")   // JSON file tracking original paths
 
-	// Command-line flags
-	showVersion = flag.Bool("v", false, "Display version")
-	restore     = flag.String("r", "", "Restore a file/folder by name")
-	temp        = flag.Bool("t", false, "Move to /tmp/")
-	list        = flag.Bool("l", false, "List all files/folders in kepfi trash")
-	Removespec  = flag.String("ps", "", "Delete a specific file/folder in kepfi trash")
-	removeAll   = flag.Bool("pa", false, "Delete all files/folders from kepfi trash")
-	force       = flag.Bool("f", false, "Force action (no confirmation)")
-	schedule    = flag.String("at", "", "Schedule a one-time purge at HH:MM")
+	optVersion   bool
+	optRestore   string
+	optTemp      bool
+	optList      bool
+	optPurgeSpec string
+	optPurgeAll  bool
+	optForce     bool
+	optAt        string
+	fileArgs     []string
 )
 
 // FileRecord defines the structure for metadata storage
@@ -136,61 +160,99 @@ func getTerminalWidth() int {
 // ========================= MAIN FUNCTIONS =========================
 
 func main() {
-	flag.Parse() // Parse all user-provided flags
+	args := os.Args[1:]
 
-	args := flag.Args() // Get non-flag arguments (filenames)
+	// Custom Argument Parser
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
 
-	if *showVersion {
-		fmt.Printf("kepfi %s\n", VERSION)
-		fmt.Printf("Made by Knuspii, (M)\n")
+		switch arg {
+		case "-v", "--version":
+			optVersion = true
+		case "-l", "--list":
+			optList = true
+		case "-pa", "--purge-all":
+			optPurgeAll = true
+		case "-f", "--force":
+			optForce = true
+		case "-t", "--temp":
+			optTemp = true
+		case "-r", "--restore":
+			if i+1 < len(args) {
+				optRestore = args[i+1]
+				i++
+			}
+		case "-ps", "--purge-specific":
+			if i+1 < len(args) {
+				optPurgeSpec = args[i+1]
+				i++
+			}
+		case "-at":
+			if i+1 < len(args) {
+				optAt = args[i+1]
+				i++
+			}
+		case "-h", "--help":
+			fmt.Print(USAGE)
+			return
+		default:
+			if !strings.HasPrefix(arg, "-") {
+				fileArgs = append(fileArgs, arg)
+			} else {
+				fmt.Printf("%sUnknown flag: %s%s\n", RED, arg, RC)
+				fmt.Printf("Use 'kepfi -h' for help\n")
+				os.Exit(1)
+			}
+		}
+	}
+
+	// Execution Logic
+	if optVersion {
+		fmt.Printf("kepfi %s\nMade by Knuspii, (M)\n", VERSION)
 		return
 	}
 
 	fmt.Printf("%s[kepfi]%s\n", CYAN, RC)
 
-	// Route to the correct function based on flags
-	if *removeAll {
-		purgeEverything()
-		return
-	}
-
-	if *list {
+	if optList {
 		listRecords()
 		return
 	}
 
-	if *restore != "" {
-		restoreFile(*restore)
+	if optRestore != "" {
+		restoreFile(optRestore)
 		return
 	}
 
-	if *Removespec != "" {
-		removeSpecific(*Removespec)
+	if optPurgeSpec != "" {
+		removeSpecific(optPurgeSpec)
 		return
 	}
 
-	if *schedule != "" {
-		schedulePurge(*schedule)
+	if optPurgeAll {
+		purgeEverything()
+		return
+	}
+
+	if optAt != "" {
+		schedulePurge(optAt)
 		return
 	}
 
 	// Handle standard file trashing
-	if len(args) > 0 {
-		for _, path := range args {
+	if len(fileArgs) > 0 {
+		for _, path := range fileArgs {
 			absPath, _ := filepath.Abs(path)
 
-			// SAFETY CHECK: Prevent accidental deletion of system or root folders
+			// SAFETY CHECK
 			if absPath == "/" || absPath == home || path == "." || path == ".." {
 				fmt.Printf("%sError: Path '%s' is too dangerous to move%s\n", RED, path, RC)
 				continue
 			}
-
-			moveToTrash(path, *temp)
+			moveToTrash(path, optTemp)
 		}
 	} else {
-		// Display basic usage if no arguments provided
-		fmt.Printf("Usage: kepfi <filename>\n")
-		fmt.Printf("Use 'kepfi -h' for help\n")
+		fmt.Printf("Usage: 'kepfi <file>' or use 'kepfi -h' for help\n")
 	}
 }
 
@@ -376,7 +438,7 @@ func moveToTrash(target string, isTemp bool) {
 
 	// Handle temporary deletion (/tmp/)
 	if isTemp {
-		destPath = filepath.Join(cacheDir, fileName)
+		destPath = filepath.Join(CACHEDIR, fileName)
 		err = os.Rename(absPath, destPath)
 		if err != nil {
 			fmt.Printf("%sError: Failed to move to temp: %v%s\n", RED, err, RC)
@@ -402,7 +464,7 @@ func moveToTrash(target string, isTemp bool) {
 		IsTemp:       false,
 	})
 
-	fmt.Printf("%s[TRASH]%s '%s' moved to trash\n", GREEN, RC, fileName)
+	fmt.Printf("%s[TRASH]%s '%s' moved to kepfi trash\n", GREEN, RC, fileName)
 }
 
 // purgeEverything completely wipes the trash folder and metadata file
@@ -417,7 +479,7 @@ func purgeEverything() {
 	}
 
 	// Require confirmation unless -f flag is used
-	if !*force {
+	if !optForce {
 		fmt.Printf("%s%sWARNING: This will permanently delete everything in kepfi trash!%s\n", BOLD, RED, RC)
 		fmt.Printf("Confirm action? (y/N): ")
 		var response string
