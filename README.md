@@ -8,10 +8,11 @@
   <img src="https://img.shields.io/badge/Platform-Linux-blue?logo=linux&logoColor=white" alt="Platform" />
 </p>
 
-<div align="center">
+<p align="center">
   <h1><code>kepfi</code></h1>
   A smart alternative to rm with a recovery bin and storage tracking.
-</div>
+  <img src="assets/preview.png" width="200" height="200" alt="Preview">
+</p>
 
 ## 🚀 Features & Usage
 **Usage: `kepfi <flag>`**
@@ -29,8 +30,10 @@
 
 ## 📥 Easy Install
 ```
-curl -sSL https://raw.githubusercontent.com/Knuspii/kepfi/main/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/knuspii/kepfi/main/install.sh | sudo bash
 ```
+You can also download kepfi from the [Releases](https://github.com/knuspii/kepfi/releases) \
+[![Download](https://img.shields.io/github/downloads/knuspii/kepfi/total?color=green)](https://github.com/knuspii/kepfi/releases)
 
 ## 📂 Directory Structure
 ```
