@@ -26,3 +26,15 @@
 | `-ps <name>`| **Purge Specific** | Permanently deletes one specific file/folder from the `kephi trash`. |
 | `-f` | **Force** | Skips the "y/N" confirmation prompt for purge actions. |
 | `-v` | **Version** | Shows current version and credits. |
+
+## 📥 Easy Install
+```
+curl -sSL https://raw.githubusercontent.com/Knuspii/kepfi/main/install.sh | sudo bash
+```
+
+## 📂 Directory Structure
+```
+~/.local/share/kepfi/
+├── trash/           # This is where your 'deleted' files actually live
+└── metadata.json    # The "brain" that remembers original paths and timestamps
+```
