@@ -41,14 +41,6 @@ curl -sSL https://raw.githubusercontent.com/knuspii/kepfi/main/install.sh | sudo
 You can also download kepfi from the [Releases](https://github.com/knuspii/kepfi/releases) \
 [![Download](https://img.shields.io/github/downloads/knuspii/kepfi/total?color=green)](https://github.com/knuspii/kepfi/releases)
 
-## Examples
-```
-  Examples:
-  kepfi file.txt        Move file.txt to kepfi trash
-  kepfi -r file.txt     Restore file.txt to its original path
-  kepfi -at 22:30       Schedule a background purge for 22:30
-```
-
 ## 📂 Directory Structure
 ```
 ~/.local/share/kepfi/
