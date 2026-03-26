@@ -1,10 +1,8 @@
 <p align="center">
-  <a href="https://go.dev/"><img src="https://img.shields.io/static/v1?label=Made%20with&message=Go&logo=go&color=007ACC" alt="Golang" /></a>
   <a href="https://goreportcard.com/report/github.com/knuspii/kepfi"><img src="https://goreportcard.com/badge/github.com/knuspii/kepfi" alt="Go Report Card" /></a>
   <a href="https://github.com/knuspii/kepfi/actions/workflows/go.yml"><img src="https://github.com/knuspii/kepfi/actions/workflows/go.yml/badge.svg" alt="Build" /></a>
   <a href="https://github.com/knuspii/kepfi/stargazers"><img src="https://img.shields.io/github/stars/knuspii/kepfi?style=social" alt="GitHub Stars" /></a>
   <br>
-  <img src="https://img.shields.io/github/license/knuspii/kepfi" />
   <img src="https://img.shields.io/badge/Platform-Linux-blue?logo=linux&logoColor=white" alt="Platform" />
 </p>
 
@@ -47,3 +45,6 @@ You can also download kepfi from the [Releases](https://github.com/knuspii/kepfi
 ├── trash/           # This is where your 'deleted' files actually live
 └── metadata.json    # The "brain" that remembers original paths and timestamps
 ```
+
+> ### 💀 `rm` is mid. `kepfi` is the glow-up.
+> Using `rm` in 2026 is low-key traumatic. It’s giving "I accidentally deleted my entire project..."
