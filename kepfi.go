@@ -29,15 +29,15 @@ Options:
   -at <HH:MM>  Schedule a one-time purge at a specific time
   -v           Display version
 
-  Examples:
-  kepfi file.txt        Move file.txt to kepfi trash
-  kepfi -r file.txt     Restore file.txt to its original path
-  kepfi -at 22:30       Schedule a background purge for 22:30
+Examples:
+kepfi file.txt        Move file.txt to kepfi trash
+kepfi -r file.txt     Restore file.txt to its original path
+kepfi -at 22:30       Schedule a background purge for 22:30
 
 `
 
 const (
-	VERSION  = "0.1.1"
+	VERSION  = "0.1.2"
 	CACHEDIR = "/tmp"
 	RC       = "\033[0m"
 	BOLD     = "\033[1m"
@@ -213,6 +213,11 @@ func main() {
 	}
 
 	fmt.Printf("%s[kepfi]%s\n", CYAN, RC)
+	// Check if running as root/sudo
+	if os.Geteuid() == 0 {
+		fmt.Printf("%s[NOTICE]%s Running with root privileges (sudo). ", YELLOW, RC)
+		fmt.Printf("%sYour trash will be located in %s%s\n", GRAY, trashDir, RC)
+	}
 
 	if optList {
 		listRecords()
