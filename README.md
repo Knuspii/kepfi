@@ -8,6 +8,7 @@
 
 <div align="center">
   <h1><code>kepfi</code></h1>
+  <p>I got tired of losing files to rm, so I built kepfi with zero dependencies.</p>
   <p>A smart alternative to rm with a recovery bin and storage tracking.</p>
   <img src="assets/preview.png" width="200" height="200" alt="Preview">
 </div>
