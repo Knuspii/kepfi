@@ -1,16 +1,17 @@
 Output kepfi-demo.gif
 
 #Set Theme "Catppuccin Frappe"
-Set FontSize 16
+Set FontSize 20
 Set Width 1200
 Set Height 600
+Set WindowBar Colorful
 
 Hide
   Type "export PATH=$PATH:$(pwd)/../bin"
   Enter
-  Type "dd if=/dev/zero of=zero.bin bs=1M count=50"
+  Type "mkdir -p /tmp/demo && cd /tmp/demo && kepfi -pa -f && touch file.txt && mkdir testfolder"
   Enter
-  Type "kepfi -pa -f && touch file.txt && mkdir testfolder && clear"
+  Type "dd if=/dev/zero of=zero.bin bs=1M count=50 && clear"
   Enter
 Show
 
@@ -36,6 +37,6 @@ Enter
 Sleep 3s
 
 Hide
-  Type "rm -r file.txt zero.bin testfolder && clear"
+  Type "cd .. && rm -r demo && clear"
   Enter
 Show
