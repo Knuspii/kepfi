@@ -22,13 +22,14 @@ fi
 
 URL="https://github.com/$REPO/releases/latest/download/${BINARY_NAME}${ARCH}"
 
-echo "Downloading $BINARY_NAME for ${ARCH}..."
+echo "Downloading $BINARY_NAME"
 curl -L "$URL" -o "$BINARY_NAME"
 
 echo "Setting permissions..."
 chmod +x "$BINARY_NAME"
 
-echo "Moving to $INSTALL_PATH..."
-mv "$BINARY_NAME" "$INSTALL_PATH"
+echo "Installing to $INSTALL_PATH..."
+sudo install -D -m 755 "$BINARY_NAME" "$INSTALL_PATH"
 
+echo ""
 echo "Done! You can now use 'kepfi'."
