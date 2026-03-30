@@ -10,7 +10,7 @@
   <h1><code>kepfi</code></h1>
   <p>I got tired of losing files to rm, so I built kepfi with zero dependencies.</p>
   <p>A smart alternative to rm with a recovery bin and storage tracking.</p>
-  <img src="assets/kepfi-demo.gif" width="200" height="200" alt="kepfi-demo">
+  <img src="assets/kepfi-demo.gif" width="1000" height="1000" alt="kepfi-demo">
 </div>
 
 ## 🚀 Features & Usage
