@@ -1,6 +1,6 @@
 Output kepfi-demo.gif
 
-Set Theme "Catppuccin Frappe"
+#Set Theme "Catppuccin Frappe"
 Set FontSize 16
 Set Width 1200
 Set Height 600
