@@ -37,7 +37,7 @@ kepfi -at 22:30       Schedule a background purge for 22:30
 `
 
 const (
-	VERSION  = "0.2.0"
+	VERSION  = "0.2.1"
 	CACHEDIR = "/tmp"
 	RC       = "\033[0m"
 	BOLD     = "\033[1m"
@@ -402,20 +402,23 @@ func removeSpecific(name string) {
 	var size int64
 
 	for _, r := range records {
+		// Only target the specific file and only the first match
 		if r.FileName == name && !found {
 			targetPath := filepath.Join(trashDir, r.FileName)
-			info, err := os.Stat(targetPath)
-			if err == nil {
-				size = info.Size()
-			}
 
-			err = os.RemoveAll(targetPath) // Permanent deletion
+			// FIX: Use getDirSize instead of info.Size() to correctly
+			// calculate the size of both files AND directories.
+			size, _ = getDirSize(targetPath)
+
+			// Permanently delete from disk
+			err := os.RemoveAll(targetPath)
 			if err != nil {
 				fmt.Printf("%sError: Could not delete '%s': %v%s\n", RED, name, err, RC)
 				os.Exit(1)
 			}
+
 			found = true
-			continue
+			continue // Skip adding this record to the 'updated' list
 		}
 		updated = append(updated, r)
 	}
@@ -425,8 +428,9 @@ func removeSpecific(name string) {
 		return
 	}
 
+	// Save the updated metadata without the deleted record
 	writeRecords(updated)
-	fmt.Printf("%s[DONE]%s Permanently removed '%s' (%s cleared)\n", GREEN, RC, name, formatSize(size))
+	fmt.Printf("%s[DONE]%s Permanently removed '%s'. %s cleared\n", GREEN, RC, name, formatSize(size))
 }
 
 // schedulePurge launches a background process that cleans the trash at a certain time
@@ -473,7 +477,7 @@ func schedulePurge(targetTime string) {
 func moveToTrash(target string, isTemp bool) {
 	absPath, err := filepath.Abs(target)
 	if err != nil {
-		fmt.Printf("%sError: Path resolution failed for '%s'%s\n", RED, target, RC)
+		fmt.Printf("%sError: Path resolution failed for '%s': %v%s\n", RED, target, err, RC)
 		return
 	}
 
@@ -516,18 +520,19 @@ func moveToTrash(target string, isTemp bool) {
 	fmt.Printf("%s[TRASH]%s '%s' moved to kepfi trash\n", GREEN, RC, fileName)
 }
 
-// purgeEverything completely wipes the trash folder and metadata file
+// purgeEverything permanently deletes all items in the trash and clears metadata.
+// It handles partial failures (e.g., root-owned files) without corrupting the database.
 func purgeEverything() {
 	records := loadRecords()
 	size, _ := getDirSize(trashDir)
 
-	// Check if trash is already empty
+	// Quick exit if there's nothing to do
 	if size == 0 && len(records) == 0 {
 		fmt.Printf("kepfi trash is already empty\n")
 		return
 	}
 
-	// Require confirmation unless -f flag is used
+	// Safety prompt: require confirmation unless --force is used
 	if !optForce {
 		fmt.Printf("%s%sWARNING: This will permanently delete everything in kepfi trash!%s\n", BOLD, RED, RC)
 		fmt.Printf("Confirm action? (y/N): ")
@@ -540,14 +545,45 @@ func purgeEverything() {
 		}
 	}
 
-	_ = os.Remove(metadataFile)      // Remove metadata
-	errDir := os.RemoveAll(trashDir) // Remove files
-	_ = os.MkdirAll(trashDir, 0755)  // Recreate empty trash folder
+	// Track if every single item was successfully removed
+	allCleared := true
 
-	if errDir != nil {
-		fmt.Printf("%sError: Failed to clear trash folder%s\n", RED, RC)
-		os.Exit(1)
+	// Read top-level items in trash directory
+	entries, err := os.ReadDir(trashDir)
+	if err != nil {
+		fmt.Printf("%sError: Could not read trash folder: %v%s\n", RED, err, RC)
+		return
 	}
 
-	fmt.Printf("%s[DONE]%s kepfi trash purged. %s%s%s cleared\n", GREEN, RC, BOLD, formatSize(size), RC)
+	for _, entry := range entries {
+		path := filepath.Join(trashDir, entry.Name())
+		err := os.RemoveAll(path)
+		if err != nil {
+			// Print skip message if a file is locked or owned by root
+			fmt.Printf("%sError: Could not delete %s: %v%s\n", RED, entry.Name(), err, RC)
+			allCleared = false
+		}
+	}
+
+	if allCleared {
+		// Complete success: wipe metadata and report total cleared size
+		_ = os.Remove(metadataFile)
+		fmt.Printf("%s[DONE]%s kepfi trash purged. %s%s%s cleared\n", GREEN, RC, YELLOW, formatSize(size), RC)
+	} else {
+		// Partial failure: filter metadata to only keep records of files still on disk
+		fmt.Printf("Some files remain. Updating metadata...\n")
+
+		var remainingRecords []FileRecord
+		for _, r := range records {
+			if _, err := os.Stat(filepath.Join(trashDir, r.FileName)); err == nil {
+				remainingRecords = append(remainingRecords, r)
+			}
+		}
+		writeRecords(remainingRecords)
+
+		fmt.Printf("%sError: Trash not fully cleared%s\n", RED, RC)
+	}
+
+	// Ensure the trash directory exists for future use
+	_ = os.MkdirAll(trashDir, 0755)
 }
