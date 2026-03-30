@@ -17,17 +17,17 @@ Project URL: https://github.com/Knuspii/kepfi
 License: GPL-3.0
 Author: Knuspii, (M)
 
-Usage: kepfi [option]
+Usage: kepfi [OPTION]
 
 Options:
-  -l           Shows a detailed table of kepfi trashed items
-  -r <file>    Restores a file/folder back to its original location
-  -t <file>    Move a file/folder to /tmp/
-  -ps <file>   Purge specific file/folder in kepfi trash
-  -pa          Purge all files/folders from kepfi trash
-  -f           Force action (no confirmation)
-  -at <HH:MM>  Schedule a one-time purge at a specific time
-  -v           Display version
+  -l,  --list                   Shows a detailed table of kepfi trashed items
+  -r,  --restore <FILE>         Restores a file/folder back to its original location
+  -t,  --temp <FILE>            Move a file/folder to /tmp/
+  -ps, --purge-specific <FILE>  Purge specific file/folder in kepfi trash
+  -pa, --purge-all              Purge all files/folders in kepfi trash
+  -f,  --force                  Force action (no confirmation)
+  -at, --at-time <HH:MM>        Schedule a one-time purge at a specific time
+  -v,  --version                Displays version and infos
 
 Examples:
 kepfi file.txt        Move file.txt to kepfi trash
@@ -37,7 +37,7 @@ kepfi -at 22:30       Schedule a background purge for 22:30
 `
 
 const (
-	VERSION  = "0.1.2"
+	VERSION  = "0.2.1"
 	CACHEDIR = "/tmp"
 	RC       = "\033[0m"
 	BOLD     = "\033[1m"
@@ -70,12 +70,14 @@ type FileRecord struct {
 	FileName     string    `json:"file_name"`
 	OriginalPath string    `json:"original_path"`
 	DeletedAt    time.Time `json:"deleted_at"`
-	IsTemp       bool      `json:"is_temp"`
 }
 
 // init ensures the trash directory exists before the app runs
 func init() {
-	_ = os.MkdirAll(trashDir, 0755)
+	err := os.MkdirAll(trashDir, 0755)
+	if err != nil {
+		fmt.Printf("%sError: Could not init: %v%s\n", RED, err, RC)
+	}
 }
 
 // ========================= HELPER FUNCTIONS =========================
@@ -123,7 +125,7 @@ func formatSize(bytes int64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.2f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 // getDirSize calculates the total size of a directory recursively
@@ -157,6 +159,25 @@ func getTerminalWidth() int {
 	return width
 }
 
+// getUniquePath ensures no overwrite by appending (1), (2), etc.
+func getUniquePath(dir, fileName string) string {
+	ext := filepath.Ext(fileName)
+	name := strings.TrimSuffix(fileName, ext)
+
+	newPath := filepath.Join(dir, fileName)
+	counter := 1
+
+	for {
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			return newPath
+		}
+
+		newName := fmt.Sprintf("%s(%d)%s", name, counter, ext)
+		newPath = filepath.Join(dir, newName)
+		counter++
+	}
+}
+
 // ========================= MAIN FUNCTIONS =========================
 
 func main() {
@@ -167,7 +188,7 @@ func main() {
 		arg := args[i]
 
 		switch arg {
-		case "-v", "--version":
+		case "-v", "-V", "--version":
 			optVersion = true
 		case "-l", "--list":
 			optList = true
@@ -187,8 +208,11 @@ func main() {
 				optPurgeSpec = args[i+1]
 				i++
 			}
-		case "-at":
-			if i+1 < len(args) {
+		case "-at", "--at-time":
+			if i+1 >= len(args) || strings.HasPrefix(args[i+1], "-") {
+				fmt.Printf("%sError: -at requires a time (HH:MM)%s\n", RED, RC)
+				os.Exit(1)
+			} else {
 				optAt = args[i+1]
 				i++
 			}
@@ -250,14 +274,16 @@ func main() {
 			absPath, _ := filepath.Abs(path)
 
 			// SAFETY CHECK
-			if absPath == "/" || absPath == home || path == "." || path == ".." {
+			if absPath == "/" || absPath == trashDir || absPath == home || path == "." || path == ".." {
 				fmt.Printf("%sError: Path '%s' is too dangerous to move%s\n", RED, path, RC)
 				continue
 			}
 			moveToTrash(path, optTemp)
 		}
 	} else {
-		fmt.Printf("Usage: 'kepfi <file>' or use 'kepfi -h' for help\n")
+		fmt.Printf("%sError: You need to provide a filename%s\n", RED, RC)
+		fmt.Printf("Use 'kepfi -h' for help\n")
+		os.Exit(1)
 	}
 }
 
@@ -270,18 +296,20 @@ func listRecords() {
 	}
 
 	// UI Layout Variables
-	nameW := 18 // Width for filename column
+	nameW := 25 // Width for filename column
 	typeW := 5  // Width for DIR/FILE indicator
+	sizeW := 8  // Width for Size column
 	dateW := 16 // Width for timestamp
 	termWidth := getTerminalWidth()
 
-	fmt.Printf("%skepfi trash list:%s\n\n", CYAN, RC)
+	fmt.Printf("kepfi trash list:\n\n")
 
 	// Print Table Header
-	fmt.Printf("%s%-*s %-*s %-*s %s%s\n",
+	fmt.Printf("%s%-*s %-*s %-*s %-*s %s%s\n",
 		BOLD,
 		nameW, "FILENAME:",
 		typeW, "TYPE:",
+		sizeW, "SIZE:",
 		dateW, "DELETED AT:",
 		"ORIGINAL PATH:", RC)
 
@@ -290,24 +318,31 @@ func listRecords() {
 	// Iterate and print each record
 	for _, r := range records {
 		displayName := truncate(r.FileName, nameW)
+		itemPath := filepath.Join(trashDir, r.FileName)
 
 		// Determine if the item is a folder or a file
 		fileType := "FILE"
-		info, err := os.Stat(filepath.Join(trashDir, r.FileName))
+		info, err := os.Stat(itemPath)
 		if err == nil && info.IsDir() {
 			fileType = "DIR"
 		}
 
+		// Calculate size
+		sizeBytes, _ := getDirSize(itemPath)
+		displaySize := formatSize(sizeBytes)
+
 		// Dynamically calculate space for path column
-		pathLimit := termWidth - nameW - typeW - dateW - 3
+		// We subtract the widths of other columns and the spaces between them
+		pathLimit := termWidth - nameW - typeW - sizeW - dateW - 4
 		if pathLimit < 10 {
 			pathLimit = 10
 		}
 		displayPath := truncate(r.OriginalPath, pathLimit)
 
-		fmt.Printf("%-*s %-*s %-*s %s%s%s\n",
+		fmt.Printf("%-*s %-*s %-*s %-*s %s%s%s\n",
 			nameW, displayName,
 			typeW, fileType,
+			sizeW, displaySize,
 			dateW, r.DeletedAt.Format("2006-01-02 15:04"),
 			GRAY, displayPath, RC)
 	}
@@ -331,11 +366,20 @@ func restoreFile(name string) {
 			// Ensure the original folder still exists (or recreate it)
 			_ = os.MkdirAll(destDir, 0755)
 
-			err := os.Rename(src, r.OriginalPath)
+			// check if destination already exists
+			destPath := r.OriginalPath
+			if _, err := os.Stat(destPath); err == nil {
+				// file exists -> generate new safe name
+				destPath = getUniquePath(destDir, filepath.Base(destPath))
+			}
+
+			// now restore safely
+			err := os.Rename(src, destPath)
 			if err != nil {
 				fmt.Printf("%sError: Could not restore file: %v%s\n", RED, err, RC)
 				os.Exit(1)
 			}
+
 			fmt.Printf("%s[RESTORED]%s %s to %s\n", GREEN, RC, r.FileName, r.OriginalPath)
 			found = true
 			continue
@@ -358,20 +402,23 @@ func removeSpecific(name string) {
 	var size int64
 
 	for _, r := range records {
+		// Only target the specific file and only the first match
 		if r.FileName == name && !found {
 			targetPath := filepath.Join(trashDir, r.FileName)
-			info, err := os.Stat(targetPath)
-			if err == nil {
-				size = info.Size()
-			}
 
-			err = os.RemoveAll(targetPath) // Permanent deletion
+			// FIX: Use getDirSize instead of info.Size() to correctly
+			// calculate the size of both files AND directories.
+			size, _ = getDirSize(targetPath)
+
+			// Permanently delete from disk
+			err := os.RemoveAll(targetPath)
 			if err != nil {
 				fmt.Printf("%sError: Could not delete '%s': %v%s\n", RED, name, err, RC)
 				os.Exit(1)
 			}
+
 			found = true
-			continue
+			continue // Skip adding this record to the 'updated' list
 		}
 		updated = append(updated, r)
 	}
@@ -381,8 +428,9 @@ func removeSpecific(name string) {
 		return
 	}
 
+	// Save the updated metadata without the deleted record
 	writeRecords(updated)
-	fmt.Printf("%s[DONE]%s Permanently removed '%s' (%s cleared)\n", GREEN, RC, name, formatSize(size))
+	fmt.Printf("%s[DONE]%s Permanently removed '%s'. %s cleared\n", GREEN, RC, name, formatSize(size))
 }
 
 // schedulePurge launches a background process that cleans the trash at a certain time
@@ -429,7 +477,7 @@ func schedulePurge(targetTime string) {
 func moveToTrash(target string, isTemp bool) {
 	absPath, err := filepath.Abs(target)
 	if err != nil {
-		fmt.Printf("%sError: Path resolution failed for '%s'%s\n", RED, target, RC)
+		fmt.Printf("%sError: Path resolution failed for '%s': %v%s\n", RED, target, err, RC)
 		return
 	}
 
@@ -454,7 +502,8 @@ func moveToTrash(target string, isTemp bool) {
 	}
 
 	// Move to standard kepfi trash
-	destPath = filepath.Join(trashDir, fileName)
+	destPath = getUniquePath(trashDir, fileName)
+	fileName = filepath.Base(destPath) // metadata
 	err = os.Rename(absPath, destPath)
 	if err != nil {
 		fmt.Printf("%sError: Failed to move to kepfi trash: %v%s\n", RED, err, RC)
@@ -466,24 +515,24 @@ func moveToTrash(target string, isTemp bool) {
 		FileName:     fileName,
 		OriginalPath: absPath,
 		DeletedAt:    time.Now(),
-		IsTemp:       false,
 	})
 
 	fmt.Printf("%s[TRASH]%s '%s' moved to kepfi trash\n", GREEN, RC, fileName)
 }
 
-// purgeEverything completely wipes the trash folder and metadata file
+// purgeEverything permanently deletes all items in the trash and clears metadata.
+// It handles partial failures (e.g., root-owned files) without corrupting the database.
 func purgeEverything() {
 	records := loadRecords()
 	size, _ := getDirSize(trashDir)
 
-	// Check if trash is already empty
+	// Quick exit if there's nothing to do
 	if size == 0 && len(records) == 0 {
 		fmt.Printf("kepfi trash is already empty\n")
 		return
 	}
 
-	// Require confirmation unless -f flag is used
+	// Safety prompt: require confirmation unless --force is used
 	if !optForce {
 		fmt.Printf("%s%sWARNING: This will permanently delete everything in kepfi trash!%s\n", BOLD, RED, RC)
 		fmt.Printf("Confirm action? (y/N): ")
@@ -496,14 +545,45 @@ func purgeEverything() {
 		}
 	}
 
-	_ = os.Remove(metadataFile)      // Remove metadata
-	errDir := os.RemoveAll(trashDir) // Remove files
-	_ = os.MkdirAll(trashDir, 0755)  // Recreate empty trash folder
+	// Track if every single item was successfully removed
+	allCleared := true
 
-	if errDir != nil {
-		fmt.Printf("%sError: Failed to clear trash folder%s\n", RED, RC)
-		os.Exit(1)
+	// Read top-level items in trash directory
+	entries, err := os.ReadDir(trashDir)
+	if err != nil {
+		fmt.Printf("%sError: Could not read trash folder: %v%s\n", RED, err, RC)
+		return
 	}
 
-	fmt.Printf("%s[DONE]%s kepfi trash purged. %s%s%s cleared\n", GREEN, RC, BOLD, formatSize(size), RC)
+	for _, entry := range entries {
+		path := filepath.Join(trashDir, entry.Name())
+		err := os.RemoveAll(path)
+		if err != nil {
+			// Print skip message if a file is locked or owned by root
+			fmt.Printf("%sError: Could not delete %s: %v%s\n", RED, entry.Name(), err, RC)
+			allCleared = false
+		}
+	}
+
+	if allCleared {
+		// Complete success: wipe metadata and report total cleared size
+		_ = os.Remove(metadataFile)
+		fmt.Printf("%s[DONE]%s kepfi trash purged. %s%s%s cleared\n", GREEN, RC, YELLOW, formatSize(size), RC)
+	} else {
+		// Partial failure: filter metadata to only keep records of files still on disk
+		fmt.Printf("Some files remain. Updating metadata...\n")
+
+		var remainingRecords []FileRecord
+		for _, r := range records {
+			if _, err := os.Stat(filepath.Join(trashDir, r.FileName)); err == nil {
+				remainingRecords = append(remainingRecords, r)
+			}
+		}
+		writeRecords(remainingRecords)
+
+		fmt.Printf("%sError: Trash not fully cleared%s\n", RED, RC)
+	}
+
+	// Ensure the trash directory exists for future use
+	_ = os.MkdirAll(trashDir, 0755)
 }
