@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+	"unsafe"
 )
 
 const USAGE = `A smart alternative to rm with a recovery bin and storage tracking.
@@ -37,7 +39,7 @@ kepfi -at 22:30       Schedule a background purge for 22:30
 `
 
 const (
-	VERSION  = "0.2.1"
+	VERSION  = "0.2.2"
 	CACHEDIR = "/tmp"
 	RC       = "\033[0m"
 	BOLD     = "\033[1m"
@@ -72,6 +74,16 @@ type FileRecord struct {
 	DeletedAt    time.Time `json:"deleted_at"`
 }
 
+// winsize matches the kernel's structure for terminal dimensions
+type winsize struct {
+	Row    uint16
+	Col    uint16
+	Xpixel uint16
+	Ypixel uint16
+}
+
+// ========================= HELPER FUNCTIONS =========================
+
 // init ensures the trash directory exists before the app runs
 func init() {
 	err := os.MkdirAll(trashDir, 0755)
@@ -79,8 +91,6 @@ func init() {
 		fmt.Printf("%sError: Could not init: %v%s\n", RED, err, RC)
 	}
 }
-
-// ========================= HELPER FUNCTIONS =========================
 
 // loadRecords reads and decodes the metadata JSON file
 func loadRecords() []FileRecord {
@@ -145,18 +155,24 @@ func getDirSize(path string) (int64, error) {
 
 // getTerminalWidth fetches the current terminal size for dynamic UI scaling
 func getTerminalWidth() int {
-	cmd := exec.Command("stty", "size")
-	cmd.Stdin = os.Stdin
-	out, err := cmd.Output()
-	if err != nil {
-		return 80 // Default width if command fails
-	}
-	parts := strings.Split(strings.TrimSpace(string(out)), " ")
-	if len(parts) < 2 {
+	ws := &winsize{}
+
+	// TIOCGWINSZ (0x5413) is the ioctl command to get window size.
+	// We use syscall.Stdout (file descriptor 1) to query the current terminal.
+	_, _, err := syscall.Syscall(
+		syscall.SYS_IOCTL,
+		uintptr(syscall.Stdout),
+		uintptr(syscall.TIOCGWINSZ),
+		uintptr(unsafe.Pointer(ws)),
+	)
+
+	// If the call fails (e.g., when piped or not a TTY),
+	// we default to a standard width of 80.
+	if err != 0 {
 		return 80
 	}
-	width, _ := strconv.Atoi(parts[1])
-	return width
+
+	return int(ws.Col)
 }
 
 // getUniquePath ensures no overwrite by appending (1), (2), etc.
