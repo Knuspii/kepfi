@@ -1,3 +1,3 @@
-module github.com/knuspii/kepfi
+module github.com/Knuspii/kepfi
 
 go 1.25
