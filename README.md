@@ -37,6 +37,10 @@ kepfi -at 22:30       Schedule a background purge for 22:30
 ```
 curl -sSL https://raw.githubusercontent.com/knuspii/kepfi/main/install.sh | sudo bash
 ```
+Or
+```
+go install github.com/Knuspii/kepfi@latest
+```
 You can also download kepfi from the [Releases](https://github.com/knuspii/kepfi/releases) \
 [![Download](https://img.shields.io/github/downloads/knuspii/kepfi/total?color=green)](https://github.com/knuspii/kepfi/releases)
 
